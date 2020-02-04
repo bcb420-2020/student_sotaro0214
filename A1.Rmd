@@ -1,0 +1,260 @@
+---
+title: "Assignment 1 Sotaro Hirai R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+### Prepare packages required for this analysis.
+```{r}
+# Load Biobase.
+if (! require(Biobase, quietly=TRUE)) {
+  if (! exists("biocLite")) {
+    source("https://bioconductor.org/biocLite.R")
+  }
+  biocLite("Biobase")
+  library(Biobase)
+}
+# Load GEOquery.
+
+if (! require(GEOquery, quietly=TRUE)) {
+  if (! exists("biocLite")) {
+    source("https://bioconductor.org/biocLite.R")
+  }
+  biocLite("GEOquery")
+  library(GEOquery)
+}
+
+library(knitr)
+library(edgeR)
+```
+
+### Retrieve GEO data for GSE94335 and display relevant information.
+```{r}
+GSE125150 <- getGEO("GSE125150", GSEMatrix = FALSE)
+kable(data.frame(head(Meta(GSE125150))), format = "html")
+gpl <- names(GPLList(GSE125150))[1]
+gpl_info <- Meta(getGEO(gpl))
+```
+**Platform title: ** `r gpl_info$title`  
+**Submission date: ** `r gpl_info$submission_date`  
+**Last update date: ** `r gpl_info$last_update_date`  
+**Organisms: ** `r gpl_info$organism`  
+**Number of GEO datasets that use this technology: ** `r length(gpl_info$series_id)`  
+**Number of GEO samples that use this technology: ** `r length(gpl_info$sample_id)` 
+
+### Retrieve supplementary files for the differential expressions.
+```{r}
+supp_files <- getGEOSuppFiles("GSE125150")
+file_names <- rownames(supp_files)
+
+# Expression data for KLF-1 activated and control samples:
+expr <- read.table(file_names[5], header = TRUE, check.names = FALSE, sep = ',')
+
+# Check if properly retrieved:
+kable(expr[1:15,1:10], format = "html")
+
+# Define the groups:
+samples <- data.frame(lapply(colnames(expr)[8:15], FUN = function(x){unlist(strsplit(x, split = "_"))[c(2,1)]}))
+colnames(samples) <- colnames(expr[8:15])
+rownames(samples) <- c("Sample", "Condition")
+samples <- data.frame(t(samples))
+```
+
+### Clean data if needed.
+```{r}
+# Check to see if there are no duplicates:
+gene_counts <- sort(table(expr$gene_id), decreasing = TRUE)
+gene_counts[gene_counts > 1] # No duplicates
+
+```
+
+The data provided was thorough enough to have HGNC symbols for each gene,
+so there was no need for identifier mapping.  
+
+### Filter any uninformative or weakly expressed data after converting counts to cpm.
+```{r}
+# Convert counts to cpm using edgeR:
+dim(expr)
+cpms <- cpm(expr[, 8:15])
+
+# Name the rows by their gene names:
+rownames(cpms) <- expr[, 5]
+
+# Filter out those that don't have > 1 cpm for at least 4 samples (based on edgeR
+# documentation, we want our restrictions to be based on least samples per condition 
+# we have).
+keep <- rowSums(cpms > 1) >= 4
+expr_filtered <- expr[keep,]
+```
+
+Started with  `r dim(expr[1])[1]` genes.
+Filtered down to `r dim(expr_filtered[1])[1]` genes.
+ 
+
+### Plotting the density distribution of my filtered and cpm-converted data.
+```{r}
+# Make sure to run this chunk as a whole,
+# as it leads to an error if run individually.
+# Apply log transformation:
+cpm_density <- apply(log2(cpm(expr_filtered[, 8:15])), 2, density)
+
+# Calculate the x and y limits of samples:
+xlim <- 0
+ylim <- 0
+for (i in 1:length(cpm_density)) {
+  xlim <- range(c(xlim, cpm_density[[i]]$x));
+  ylim <- range(c(ylim, cpm_density[[i]]$y))
+}
+
+cols <- rainbow(length(cpm_density))
+ltys <- rep(1, length(cpm_density))
+
+# Plot density distribution graph (initialize plot):
+plot(cpm_density[[1]], xlim = xlim, ylim = ylim, type = "n", ylab = "Smoothing density of log2-CPM", main = "", cex.lab = 0.85)
+
+# Plot lines:
+for (i in 1:length(cpm_density)) lines(cpm_density[[i]], col = cols[i], lty = ltys[i])
+
+
+# Legends:
+legend("topright", colnames(expr_filtered[, 8:15]), col = cols, lty = ltys, cex = 0.75, border = "blue", text.col = "green4", merge = TRUE, bg = "gray90")
+
+```
+  
+Distribution of our data is roughly normal-distribution, based on 
+a rough estimate from the plot generated above.
+
+Since my data is an RNAseq data and I want to 
+normalize based on samples, I will use Trimmed Means of M-values technique of
+normalization.
+  
+### Plot and compare the distribution between pre- and post-normalization.
+```{r}
+# Convert the filtered data to matrix for TMM:
+filtered_data_matrix <- as.matrix(expr_filtered[, 8:15])
+
+# Set the rownames to ensembl ids:
+rownames(filtered_data_matrix) <- expr_filtered$gene_id
+
+# Create a DGEList object, based on my data and how I want to compare those (ie. KLF-1+ vs KLF-1-):
+d <- DGEList(counts = filtered_data_matrix, group = samples$Condition)
+
+# Calculate normalization factors:
+d <- calcNormFactors(d)
+
+# Normalized data:
+normalized_counts <- cpm(d)
+
+# Compare plots of pre- vs post-normalization:
+normalized_cpm_density <- apply(log2(normalized_counts), 2, density)
+
+# Split the graph window so we can compare the plots:
+# Idea based on Holts, Y. (n.d.) Split base R plot window with layout(). Retrieved from:
+# https://www.r-graph-gallery.com/75-split-screen-with-layout.html.
+layout(matrix(c(1, 2), ncol = 2))
+
+xlim <- 0
+ylim <- 0
+for (i in 1:length(normalized_cpm_density)) {
+  xlim <- range(c(xlim, normalized_cpm_density[[i]]$x));
+  ylim <- range(c(ylim, normalized_cpm_density[[i]]$y))
+}
+
+cols <- rainbow(length(normalized_cpm_density))
+ltys <- rep(1, length(normalized_cpm_density))
+
+# Plot density distribution graph (initialize plot):
+plot(normalized_cpm_density[[1]], xlim = xlim, ylim = ylim, type = "n", ylab = "Smoothing density of log2-CPM", main = "Post-normalization", cex.lab = 0.85)
+
+# Plot lines for post-normalization:
+for (i in 1:length(normalized_cpm_density)) lines(normalized_cpm_density[[i]], col = cols[i], lty = ltys[i])
+
+
+# Legends:
+legend("topright", colnames(expr_filtered[, 8:15]), col = cols, lty = ltys, cex = 0.75, border = "blue", text.col = "green4", merge = TRUE, bg = "gray90")
+
+
+
+# Plot pre-normalization distribution:
+xlim <- 0
+ylim <- 0
+for (i in 1:length(cpm_density)) {
+  xlim <- range(c(xlim, cpm_density[[i]]$x));
+  ylim <- range(c(ylim, cpm_density[[i]]$y))
+}
+
+cols <- rainbow(length(cpm_density))
+ltys <- rep(1, length(cpm_density))
+
+# Plot density distribution graph (initialize plot):
+plot(cpm_density[[1]], xlim = xlim, ylim = ylim, type = "n", ylab = "Smoothing density of log2-CPM", main = "Pre-normalization", cex.lab = 0.85)
+
+# Plot lines:
+for (i in 1:length(cpm_density)) lines(cpm_density[[i]], col = cols[i], lty = ltys[i])
+
+
+# Legends:
+legend("topright", colnames(expr_filtered[, 8:15]), col = cols, lty = ltys, cex = 0.75, border = "blue", text.col = "green4", merge = TRUE, bg = "gray90")
+```
+
+The difference between pre- and post-normalization is not apparent, so
+I will look into common and tag-wise dispersion, as well as MDS.
+
+```{r}
+# Plot the MDS for the data after normalization:
+plotMDS(d, labels = rownames(samples), col = c("darkgreen", "blue")[factor(samples$Condition)])
+```
+
+The data clusters based on the treatment, except for K2MT_A.
+I could perhaps compare the analysis with and without sample A, to see 
+if this affects the outcome of the analysis, since it looks like an outlier.
+
+```{r}
+# Estimate dispersion:
+model_design <- model.matrix(~samples$Sample + samples$Condition+0)
+d <- estimateDisp(d, model_design)
+# Plot the graph for BCV:
+plotBCV(d, col.tagwise = "black", col.common = "red")
+
+plotMeanVar(d, show.raw.vars = TRUE, show.tagwise.vars = TRUE, NBline = TRUE,
+            show.ave.raw.vars = TRUE, show.binned.common.disp.vars = TRUE)
+```
+
+Here we see that the influence we get from tagwise vs common dispersion is roughly equivalent as 
+we see many overlaps between the dark and light red points. Also, the BCV values from the plot 
+are low, suggesting that the dispersion/variation we see in our samples is low, except for a some tagwise dispersions.
+
+### Save the data.
+```{r}
+write.table(normalized_counts, "~/GSE125150_normalized_counts.txt", sep = "\t")
+```
+
+
+### Interpretaions
+What are the control and test conditions?
+The control is KLF-1 negative and test is KLF-1 positive samples.
+
+Why is the dataset of interest to you?
+Because I am interested in immunology and this dataset explores how KLF-1 affects
+the functioning of macrophages to influence the maturation of erythrocytes.
+
+Were there expression values that were not unique for specific genes? How did you handle these?
+No, there were no duplicates.
+
+Were there expression values that could not be mapped to current HUGO symbols?
+No.
+
+How many outliers were removed?
+`r dim(expr[1])[1] - dim(expr_filtered[1])[1]` genes were removed after filtering.
+Sample A could be an outlier based on the MDA plot, but I am still hesitant to completely remove it
+so in my downstream analysis, I will compare with and without sample A.
+
+How did you handle replicates?
+All replicate samples were kept; however, I am considering to drop sample A, as it seems like an 
+outlier from the MDA plot.
+
+What is the final coverage of your dataset?
+The final coverage of my dataset is `r dim(expr_filtered[1])[1]` starting from `r dim(expr[1])[1]`.
+
