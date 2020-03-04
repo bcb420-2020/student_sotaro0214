@@ -35,8 +35,8 @@ library(knitr)
 library(edgeR)
 ```
 
-### Retrieve GEO data for GSE125150 and display relevant information.
-```{r eval = TRUE, include = FALSE, echo = FALSE}
+### Retrieve GEO data for GSE125150.
+```{r eval = TRUE, echo = TRUE}
 GSE125150 <- getGEO("GSE125150", GSEMatrix = FALSE)
 kable(data.frame(head(Meta(GSE125150))), format = "html")
 gpl <- names(GPLList(GSE125150))[1]
@@ -44,7 +44,7 @@ gpl_info <- Meta(getGEO(gpl))
 ```
 
 ### Retrieve supplementary files for the differential expressions.
-```{r eval = TRUE, include = FALSE, echo = FALSE}
+```{r eval = TRUE, echo = FALSE}
 supp_files <- getGEOSuppFiles("GSE125150")
 file_names <- rownames(supp_files)
 
@@ -62,7 +62,7 @@ samples <- data.frame(t(samples))
 ```
 
 ### Clean data if needed.
-```{r eval = TRUE, include = FALSE, echo = FALSE}
+```{r eval = TRUE, echo = FALSE}
 # Check to see if there are no duplicates:
 gene_counts <- sort(table(expr$gene_id), decreasing = TRUE)
 gene_counts[gene_counts > 1] # No duplicates
@@ -73,7 +73,7 @@ The data provided was thorough enough to have HGNC symbols for each gene,
 so there was no need for identifier mapping.  
 
 ### Filter any uninformative or weakly expressed data after converting counts to cpm.
-```{r eval = TRUE, include = FALSE, echo = FALSE}
+```{r eval = TRUE, echo = FALSE}
 # Convert counts to cpm using edgeR:
 dim(expr)
 cpms <- cpm(expr[, 8:15])
@@ -93,7 +93,7 @@ Filtered down to `r dim(expr_filtered[1])[1]` genes.
  
 
 ### Plotting the density distribution of my filtered and cpm-converted data.
-```{r eval = TRUE, include = FALSE, echo = FALSE}
+```{r eval = TRUE, include = TRUE, echo = FALSE}
 # Make sure to run this chunk as a whole,
 # as it leads to an error if run individually.
 # Apply log transformation:
@@ -123,7 +123,7 @@ legend("topright", colnames(expr_filtered[, 8:15]), col = cols, lty = ltys, cex 
 ```
   
 ### Plot and compare the distribution between pre- and post-normalization.
-```{r eval = TRUE, include = FALSE, echo = FALSE}
+```{r eval = TRUE, include = TRUE, echo = FALSE}
 # Convert the filtered data to matrix for TMM:
 filtered_data_matrix <- as.matrix(expr_filtered[, 8:15])
 
@@ -191,12 +191,12 @@ for (i in 1:length(cpm_density)) lines(cpm_density[[i]], col = cols[i], lty = lt
 legend("topright", colnames(expr_filtered[, 8:15]), col = cols, lty = ltys, cex = 0.75, border = "blue", text.col = "green4", merge = TRUE, bg = "gray90")
 ```
 
-```{r eval = TRUE, include = FALSE, echo = FALSE}
+```{r eval = TRUE, include = TRUE, echo = FALSE}
 # Plot the MDS for the data after normalization:
 plotMDS(d, labels = rownames(samples), col = c("darkgreen", "blue")[factor(samples$Condition)])
 ```
 
-```{r eval = TRUE, include = FALSE, echo = FALSE}
+```{r eval = TRUE, include = TRUE, echo = FALSE}
 # Estimate dispersion:
 model_design <- model.matrix(~samples$Sample + samples$Condition+0)
 d <- estimateDisp(d, model_design)
@@ -371,7 +371,7 @@ I could have made the cutoff higher to 0.001; however, I was afraid I would disr
 the cutoff at 0.01 as it is a generally accepted p-value for high significance.
 
 ### Create heat map based on p-value cutoff.
-```{r echo = FALSE}
+```{r echo = FALSE, results = 'hide'}
 
 top_hits <- output_hits$gene_id[output_hits$adj.P.Val<0.01]
 top_hits
@@ -413,11 +413,12 @@ upregulated_genes <- output_hits$gene_name[
   which(output_hits$adj.P.Val < 0.01 
              & output_hits$logFC > 0)]
 
-upregulated_genes
-
 downregulated_genes <- output_hits$gene_name[
   which(output_hits$adj.P.Val < 0.01 
              & output_hits$logFC < 0)]
+
+upregulated_genes[1:10]
+downregulated_genes[1:10]
 
 write.table(x=upregulated_genes,
             file=file.path("KLF1_upregulated_genes.txt"),sep = "\t",
@@ -455,7 +456,7 @@ knitr::include_graphics("downregulated_genes_3.png")
 
 ```
 
-### Interpretaions
+### Interpretations
 The results of this analysis broadly supports the original paper's conclusion, in that KLF-1 induction does lead to differentiation to macrophages that are involved in erythrocyte maturation. The result of g:Profiler shows that upregulated genes are involved in immune system processes, as well as cell-cell adhesion and communication. Also, protein kinase activity seems to be upregulated, and this makes sense because kinases are often related with signalling pathways and activations. Interestingly, these genes are also involved in neuronal processes which could potentially unveil interesting relationships between immune cells that are resident in umbilical cords vs. near neurons. Furthermore, the downregulated genes appear to be involved in kinase inhibition, which corresponds to the upregulated genes. One interesting process that is shown to be downregulated in KLF-1+ macrophages is the regulation of CD4 T cells. This could possibly be due to the fact that these macrophages are obligates to helping the maturation of erythrocytes.
 
 # References
