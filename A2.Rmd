@@ -37,23 +37,24 @@ library(edgeR)
 
 ### Retrieve GEO data for GSE125150.
 ```{r eval = TRUE, echo = TRUE}
-GSE125150 <- getGEO("GSE125150", GSEMatrix = FALSE)
+# GSE125150 <- getGEO("GSE125150", GSEMatrix = FALSE)
+GSE125150 <- getGEO(filename = "~/projects/GSE125150_family.soft", GSEMatrix = FALSE)
 kable(data.frame(head(Meta(GSE125150))), format = "html")
 gpl <- names(GPLList(GSE125150))[1]
-gpl_info <- Meta(getGEO(gpl))
+# gpl_info <- Meta(getGEO(gpl))
 ```
 
 ### Retrieve supplementary files for the differential expressions.
 ```{r eval = TRUE, echo = FALSE}
-supp_files <- getGEOSuppFiles("GSE125150")
-file_names <- rownames(supp_files)
+# supp_files <- getGEOSuppFiles("GSE125150")
+# file_names <- rownames(supp_files)
 
 # Expression data for KLF-1 activated and control samples:
-expr <- read.table(file_names[5], header = TRUE, check.names = FALSE, sep = ',')
+expr <- read.table("~/projects/Assignment_1/GSE125150/GSE125150_raw.csv.gz", header = TRUE, check.names = FALSE, sep = ',')
 
 # Check if properly retrieved:
 kable(expr[1:15,1:10], format = "html")
-
+expr
 # Define the groups:
 samples <- data.frame(lapply(colnames(expr)[8:15], FUN = function(x){unlist(strsplit(x, split = "_"))[c(2,1)]}))
 colnames(samples) <- colnames(expr[8:15])
@@ -232,7 +233,7 @@ showed that the samples clustered based on treatment (KLF-1+ vs. KLF-1-) and tha
 ## Differential Expression Analysis
 
 ### Prepare packages required for this analysis.
-```{r echo = FALSE}
+```{r}
 # Load Biobase.
 if (! require(Biobase, quietly=TRUE)) {
   if (! exists("biocLite")) {
@@ -258,7 +259,7 @@ library(edgeR)
 
 
 ### Load normalized data from previous assignment.
-```{r echo = FALSE}
+```{r}
 normalized_count_data <- read.table(file=file.path("~/GSE125150_normalized_counts.txt"))
 # Check if data imported correctly:
 normalized_count_data[1:5,1:5]
@@ -267,7 +268,7 @@ normalized_count_data[1:5,1:5]
 
 
 ### Prepare for creating a heatmap and downstream analysis.
-```{r echo = FALSE}
+```{r}
 # Converting to matrix, because we have a data.frame:
 heatmap_matrix <- normalized_count_data[,3:ncol(normalized_count_data)]
 rownames(heatmap_matrix) <- normalized_count_data$gene_id
@@ -317,7 +318,7 @@ plotMDS(heatmap_matrix, labels = rownames(samples), col = c("darkgreen", "blue")
 
 
 ### Create a model, calculate p-values, and apply multiple hypothesis testing.
-```{r echo = FALSE}
+```{r}
 # Define groups:
 samples <- data.frame(
         lapply(colnames(normalized_count_data)[3:10],
@@ -371,7 +372,7 @@ I could have made the cutoff higher to 0.001; however, I was afraid I would disr
 the cutoff at 0.01 as it is a generally accepted p-value for high significance.
 
 ### Create heat map based on p-value cutoff.
-```{r echo = FALSE, results = 'hide'}
+```{r results = 'hide'}
 
 top_hits <- output_hits$gene_id[output_hits$adj.P.Val<0.01]
 top_hits
@@ -405,7 +406,7 @@ profiles.
 ## ORA
 
 ### Retrieve thresholded list for upregulated and downregulated genes
-```{r echo = FALSE}
+```{r}
 output_hits[,"rank"] <- -log(output_hits$adj.P.Val,base =10) * sign(output_hits$logFC)
 output_hits <- output_hits[order(output_hits$rank),]
 
@@ -458,12 +459,3 @@ knitr::include_graphics("downregulated_genes_3.png")
 
 ### Interpretations
 The results of this analysis broadly supports the original paper's conclusion, in that KLF-1 induction does lead to differentiation to macrophages that are involved in erythrocyte maturation. The result of g:Profiler shows that upregulated genes are involved in immune system processes, as well as cell-cell adhesion and communication. Also, protein kinase activity seems to be upregulated, and this makes sense because kinases are often related with signalling pathways and activations. Interestingly, these genes are also involved in neuronal processes which could potentially unveil interesting relationships between immune cells that are resident in umbilical cords vs. near neurons. Furthermore, the downregulated genes appear to be involved in kinase inhibition, which corresponds to the upregulated genes. One interesting process that is shown to be downregulated in KLF-1+ macrophages is the regulation of CD4 T cells. This could possibly be due to the fact that these macrophages are obligates to helping the maturation of erythrocytes.
-
-# References
-Lopez-Yrigoyen M, Yang CT, Fidanza A, Cassetta L et al. Genetic programming of macrophages generates an in vitro model for the human erythroid island niche. Nat Commun 2019 Feb 20;10(1):881.
-
-Ritchie ME, Phipson B, Wu D, Hu Y, Law CW, Shi W, Smyth GK (2015). “limma powers differential expression analyses for RNA-sequencing and microarray studies.” Nucleic Acids Research, 43(7), e47. doi: 10.1093/nar/gkv007.
-
-Robinson MD, McCarthy DJ, Smyth GK (2010). “edgeR: a Bioconductor package for differential expression analysis of digital gene expression data.” Bioinformatics, 26(1), 139-140. doi: 10.1093/bioinformatics/btp616.
-
-Uku Raudvere, Liis Kolberg, Ivan Kuzmin, Tambet Arak, Priit Adler, Hedi Peterson, Jaak Vilo: g:Profiler: a web server for functional enrichment analysis and conversions of gene lists (2019 update) Nucleic Acids Research 2019; doi:10.1093/nar/gkz369
