@@ -46,23 +46,23 @@ knitr::include_graphics("GSEA_top10_pos.png")
 knitr::include_graphics("GSEA_top10_neg.png")
 ```
 
-Based on these lists, the upregulated genes are enriched in neuron projection guidance, which suggests that the genes are involved in neuron development. Furthermore, other top gene sets are also involved in CNS development, such as axon development. These are known results from previous research, for example by Moore, Apara and Goldberg (2011), where KLF genes are transcription factors involved in neuron growth and axon regeneration. Furthermore, Bieker, Ouyang and Chen (1998) also state that among the KLF genes, post-translational phosphorylation of KLF1 allows it to bind beta-globin promotor in erythroid cell lines that do not express beta-globin yet. To support this, the 15th gene set (not shown in figure above) related to positive regulation of tyrosine-peptidyl phosphorylation.
-Also, a few of the top gene sets appear to be involved in immune cells and function. 
-The downregulated genes are enriched in regulation of protein kinase activity. We cannot conclude if this is allowing phosphorylation of KLF-1 since the geneset term is not specific enough in stating whether it positively or negatively regulates kinase activity.
+Based on these lists, the upregulated genes are enriched in neuron projection guidance, which suggests that the genes are involved in neuron development. Furthermore, other top gene sets are also involved in CNS development, such as axon development. These are known results from previous research, for example by Moore, Apara and Goldberg (2011), where KLF genes are transcription factors involved in neuron growth and axon regeneration. Furthermore, Bieker, Ouyang and Chen (1998) also state that among the KLF genes, post-translational phosphorylation of KLF1 allows it to bind beta-globin promotor in erythroid cell lines that do not express beta-globin yet. To support this, the 15th gene set (not shown in figure above) related to positive regulation of tyrosine-peptidyl phosphorylation.  
+Also, a few of the top gene sets appear to be involved in immune cells and function.  
+The downregulated genes are enriched in regulation of protein kinase activity. We cannot conclude if this is allowing phosphorylation of KLF-1 since the geneset term is not specific enough in stating whether it positively or negatively regulates kinase activity.  
 
-The stats associated with neuron projection guidance are:
-- ES = 0.4
-- NES = 2.48
-- FDR = 0.065
-- 31 genes in leading edge
-- Top gene: EFNB1; Receptor tyrosine kinase involved in migration, repulsion and adhesion during neuronal, vascular and epithelial development.
+The stats associated with neuron projection guidance are:  
+- ES = 0.4  
+- NES = 2.48  
+- FDR = 0.065  
+- 31 genes in leading edge  
+- Top gene: EFNB1; Receptor tyrosine kinase involved in migration, repulsion and adhesion during neuronal, vascular and epithelial development.  
 
-The stats associated with regulation of protein kinase activity are:
-- ES = -0.2
-- NES = -1.88
-- FDR = 1.000
-- 59 genes in leading edge
-- Top gene: MAP3K6 in the MAP kinase signal transduction
+The stats associated with regulation of protein kinase activity are:  
+- ES = -0.2  
+- NES = -1.88  
+- FDR = 1.000  
+- 59 genes in leading edge  
+- Top gene: MAP3K6 in the MAP kinase signal transduction  
 
 Compared to the analysis in A2, the gene set results are more specific to neuronal and axonal growth, rather than general cell binding activity. I think these results can be compared because regardless of thresholded or nonthresholded, the scores observed among the genes prior to gene set enrichment analysis are very good, and therefore the thresholds do not affect the gene list much. With that being said, the thresholds are arbitrary while GSEA uses a non-thresholded approach, being fair by including all genes. So, although I say that they can be compared, I think the nonthresholded analysis would yield a more robust result.
 
@@ -75,6 +75,14 @@ The FDR q-value cutoff was set to 0.1 (initially 0.01 but did not allow any to p
 ```{r}
 knitr::include_graphics("initial_enrichment_map_final.png")
 ```
+The enrichment map had 153 Nodes and 827 edges.  
+5 largest annotated clusters:  
+- ion homeostasis transport  
+- activation neutrophil immune  
+- cell morphogenesis differentiation  
+- inflammatory response oxygen  
+- regulation phosphorylation activity  
+
 
 AutoAnnotate App was used to annotate the EM, using Community Cluster and Word Cloud: Adjacent Words. The default MCL cluster did not work and other methods were not as informative as Community Cluster.
 Below is the annotated enrichment map.
@@ -90,13 +98,13 @@ knitr::include_graphics("enrichment_map_final_legends_added.png")
 
 
 The clusters were collapsed to create a themed enrichment map.
-The major themes highlighted here are:
-- neutrophil activation, inflammatory response in presence of oxygen, cell morphogenesis and differentiation (likely related to immune cells)
-- regulation of phosphorylation
-- ion transport and homeostasis
-- cell adhesion
-- matrisome
-- apoptosis
+The major themes highlighted here are:  
+- neutrophil activation, inflammatory response in presence of oxygen, cell morphogenesis and differentiation (likely related to immune cells)  
+- regulation of phosphorylation  
+- ion transport and homeostasis  
+- cell adhesion  
+- matrisome  
+- apoptosis  
 These themes mildly fit with the model, where KLF-1 in macrophage is contributing to creating an erythroblastic island niche. Although the analysis is not suggesting anything as specific as the model, it does suggest how KLF-1 is involved in cell morphogenesis, likely of immune cells, since the cluster is connected to the inflammatory response cluster.
 Based on this EM, an interesting and novel pathway seen is neutrophil activation. As far as I have researched for papers, there were no direct KLF-1 activity associated with neutrophil activation. 
 
@@ -118,7 +126,7 @@ I imported this into the main enrichment map that I generated and below is the p
 knitr::include_graphics("postanalysis_eryth.png")
 ```
 
-This post analysis shows that indeed many of the genes expressed in KLF-1+ macrophages are related to erythrocyte differentiation, which supports the findings made by the original study. Therefore, although not confident due to insignificant statistical values, we can say that the genes are likely involved in inflammatory responses and cell morphogenesis for erythrocytic cell lines, and neutrophil activation could play an important role in differentiation of erythrocytes. 
+This post analysis shows that indeed many of the genes expressed in KLF-1+ macrophages are related to erythrocyte differentiation, which supports the findings made by the original study. Therefore, although not confident due to insignificant statistical values, we can say that the genes are likely involved in inflammatory responses and cell morphogenesis for erythrocytic cell lines, and neutrophil activation could play an important role in differentiation of erythrocytes.  
 * The original network was subsetted to include only the nodes from clusters with >3 terms, in the post analysis. 
 
 # References
